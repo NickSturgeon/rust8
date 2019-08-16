@@ -1,8 +1,12 @@
 use std::fmt;
+use std::io;
+use std::io::prelude::*;
+use std::fs::File;
 
 mod opcode;
 
 const FONT_SET_SIZE: usize = 80;
+const PROGRAM_START: usize = 0x200;
 
 pub struct Cpu {
     memory: [u8; 4096],
@@ -21,7 +25,7 @@ impl Cpu {
             memory: [0; 4096],
             registers: [0; 16],
             index: 0,
-            pc: 0x200,
+            pc: PROGRAM_START as u16,
             stack: [0; 16],
             sp: 0
         }
@@ -30,6 +34,15 @@ impl Cpu {
     pub fn load_font_set(&mut self, font_set: &[u8; FONT_SET_SIZE]) {
         for index in 0..FONT_SET_SIZE {
             self.memory[index] = font_set[index];
+        }
+    }
+
+    pub fn load_game(&mut self, game: &String) {
+       let mut file = File::open(game).unwrap();
+       let mut buffer = Vec::new();
+
+        for i in 0..file.read_to_end(&mut buffer).unwrap() {
+            self.memory[PROGRAM_START + i] = buffer[i];
         }
     }
 
@@ -44,10 +57,11 @@ impl Cpu {
     fn run_opcode(&mut self, op: opcode::Opcode, instruction: opcode::Instruction) {
         use opcode::Opcode;
         let opcode::Instruction(inst) = instruction;
-        let vx: usize = (inst & 0x0F00) >> 8;
-        let vy: usize = (inst & 0x00F0) >> 4;
+        let vx: usize = ((inst & 0x0F00) >> 8) as usize;
+        let vy: usize = ((inst & 0x00F0) >> 4) as usize;
         let nn: u8 = (inst & 0xFF) as u8;
         let nnn: u16 = inst & 0xFFF;
+        println!("opcode: {:?}", op);
         match op {
             Opcode::JP => {
                 self.pc = nnn;
@@ -64,7 +78,7 @@ impl Cpu {
                     self.pc += 2;
                 }
             },
-            Opcode::SNE => {
+            Opcode::SNEN => {
                 if self.registers[vx] != nn {
                     self.pc += 4;
                 } else {
@@ -80,36 +94,47 @@ impl Cpu {
             },
             Opcode::LDN => {
                 self.registers[vx] = nn;
+                self.pc += 2;
             },
             Opcode::ADDN => {
                 self.registers[vx] += nn;
+                self.pc += 2;
             },
             Opcode::LDY => {
                 self.registers[vx] = self.registers[vy];
+                self.pc += 2;
             },
             Opcode::OR => {
                 self.registers[vx] |= self.registers[vy];
+                self.pc += 2;
             },
             Opcode::AND => {
                 self.registers[vx] &= self.registers[vy];
+                self.pc += 2;
             },
             Opcode::XOR => {
                 self.registers[vx] ^= self.registers[vy];
+                self.pc += 2;
             },
             Opcode::ADDY => {
                 self.registers[vx] += self.registers[vy];
+                self.pc += 2;
             },
             Opcode::SUB => {
                 self.registers[vx] -= self.registers[vy];
+                self.pc += 2;
             },
             Opcode::SHR => {
                 self.registers[vx] = self.registers[vx] >> 1;
+                self.pc += 2;
             },
             Opcode::SUBN => {
                 self.registers[vx] = self.registers[vy] - self.registers[vx];
+                self.pc += 2;
             },
             Opcode::SHL => {
                 self.registers[vx] = self.registers[vx] << 1;
+                self.pc += 2;
             },
             Opcode::SNEY => {
                 if self.registers[vx] != self.registers[vy] {
@@ -120,6 +145,7 @@ impl Cpu {
             },
             Opcode::LDI => {
                 self.index = nnn;
+                self.pc += 2;
             },
             Opcode::JPV => {
                 self.pc = nnn + self.registers[0] as u16;
@@ -134,9 +160,16 @@ impl Cpu {
 
 impl fmt::Debug for Cpu {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..80 {
-            write!(f, "{:#X}, ", self.memory[i]);
+        //for i in 0x200..0x210 {
+        //    write!(f, "mem[{}]: {:#X}, ", i, self.memory[i]);
+        //};
+        writeln!(f, "pc:      {:#06X}", self.pc);
+        writeln!(f, "i:       {:#06X}", self.index);
+        for i in 0..16 {
+            writeln!(f, "reg[{:02}]: {:#04X}", i, self.registers[i]);
         };
+
+
 
         write!(f, "")
     }

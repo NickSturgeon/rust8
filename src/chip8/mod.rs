@@ -19,13 +19,22 @@ impl Chip8 {
         return chip8;
     }
 
+    pub fn load_game(&mut self, game: &String) {
+        self.cpu.load_game(game);
+    }
+
     pub fn run(&mut self) {
-       self.cpu.cycle();
+        loop {
+            use std::thread;
+            println!("{:?}", self);
+            self.cpu.cycle();
+            thread::sleep_ms(2000);
+        }
     }
 }
 
 impl fmt::Debug for Chip8 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "cpu: {:?}", self.cpu)
+        write!(f, "{:?}", self.cpu)
     }
 }
