@@ -44,22 +44,88 @@ impl Cpu {
     fn run_opcode(&mut self, op: opcode::Opcode, instruction: opcode::Instruction) {
         use opcode::Opcode;
         let opcode::Instruction(inst) = instruction;
+        let vx: usize = (inst & 0x0F00) >> 8;
+        let vy: usize = (inst & 0x00F0) >> 4;
+        let nn: u8 = (inst & 0xFF) as u8;
+        let nnn: u16 = inst & 0xFFF;
         match op {
             Opcode::JP => {
-                self.pc = inst & 0xFFF;
+                self.pc = nnn;
             },
             Opcode::CALL => {
                 self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
-                self.pc = inst & 0xFFF;
+                self.pc = nnn;
             },
             Opcode::SEN => {
-                let vx = (inst & 0x0F00) >> 8;
-                if self.registers[vx as usize] == (inst & 0xFF) as u8 {
+                if self.registers[vx] == nn {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
+            },
+            Opcode::SNE => {
+                if self.registers[vx] != nn {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
+            Opcode::SEY => {
+                if self.registers[vx] == self.registers[vy] {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
+            Opcode::LDN => {
+                self.registers[vx] = nn;
+            },
+            Opcode::ADDN => {
+                self.registers[vx] += nn;
+            },
+            Opcode::LDY => {
+                self.registers[vx] = self.registers[vy];
+            },
+            Opcode::OR => {
+                self.registers[vx] |= self.registers[vy];
+            },
+            Opcode::AND => {
+                self.registers[vx] &= self.registers[vy];
+            },
+            Opcode::XOR => {
+                self.registers[vx] ^= self.registers[vy];
+            },
+            Opcode::ADDY => {
+                self.registers[vx] += self.registers[vy];
+            },
+            Opcode::SUB => {
+                self.registers[vx] -= self.registers[vy];
+            },
+            Opcode::SHR => {
+                self.registers[vx] = self.registers[vx] >> 1;
+            },
+            Opcode::SUBN => {
+                self.registers[vx] = self.registers[vy] - self.registers[vx];
+            },
+            Opcode::SHL => {
+                self.registers[vx] = self.registers[vx] << 1;
+            },
+            Opcode::SNEY => {
+                if self.registers[vx] != self.registers[vy] {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            },
+            Opcode::LDI => {
+                self.index = nnn;
+            },
+            Opcode::JPV => {
+                self.pc = nnn + self.registers[0] as u16;
+            },
+            Opcode::RND => {
+                //TODO: implement random
             },
             _ => panic!("Opcode {:?} not implemented", op)
         }
