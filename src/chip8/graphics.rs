@@ -1,3 +1,27 @@
+extern crate sdl2;
+
+use sdl2::pixels::Color;
+
+pub fn initialize(sdl_context: &sdl2::Sdl) -> sdl2::render::Canvas<sdl2::video::Window> {
+    let video_subsystem: sdl2::VideoSubsystem = sdl_context.video().unwrap();
+    let window = video_subsystem.window("CHIP-8", 1024, 512)
+        .allow_highdpi()
+        .position_centered()
+        .build()
+        .unwrap();
+
+    let mut canvas = window.into_canvas().build().unwrap();
+    canvas.set_scale(16.0, 16.0);
+
+    return canvas;
+}
+
+pub fn draw(canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
+    canvas.clear();
+    canvas.present();
+    ::std::thread::sleep(::std::time::Duration::new(0, 1_000_000_000 / 60));
+}
+
 pub const FONT_SET: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1

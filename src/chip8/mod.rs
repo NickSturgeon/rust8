@@ -4,14 +4,22 @@ mod cpu;
 mod input;
 mod graphics;
 
+extern crate sdl2;
+
 pub struct Chip8 {
-    cpu: cpu::Cpu
+    cpu: cpu::Cpu,
+    graphics: sdl2::render::Canvas<sdl2::video::Window>,
+    input: sdl2::EventPump
 }
 
 impl Chip8 {
     pub fn new() -> Chip8 {
+        let sdl_context = sdl2::init().unwrap();
+
         let mut chip8 = Chip8 {
-            cpu: cpu::Cpu::initialize()
+            cpu: cpu::Cpu::initialize(),
+            graphics: graphics::initialize(&sdl_context),
+            input: input::initialize(&sdl_context)
         };
 
         chip8.cpu.load_font_set(&graphics::FONT_SET);
@@ -25,10 +33,10 @@ impl Chip8 {
 
     pub fn run(&mut self) {
         loop {
-            use std::thread;
             println!("{:?}", self);
-            self.cpu.cycle();
-            thread::sleep_ms(2000);
+            //self.cpu.cycle();
+            input::poll_for_event(&mut self.input);
+            graphics::draw(&mut self.graphics);
         }
     }
 }
