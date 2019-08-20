@@ -13,7 +13,7 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new() -> Chip8 {
+    pub fn new(game: &String) -> Chip8 {
         let sdl_context = sdl2::init().unwrap();
 
         let mut chip8 = Chip8 {
@@ -23,12 +23,9 @@ impl Chip8 {
         };
 
         chip8.cpu.load_font_set(&graphics::FONT_SET);
+        chip8.cpu.load_game(game);
 
         return chip8;
-    }
-
-    pub fn load_game(&mut self, game: &String) {
-        self.cpu.load_game(game);
     }
 
     pub fn run(&mut self) {
