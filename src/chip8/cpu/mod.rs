@@ -3,7 +3,12 @@ use std::io;
 use std::io::prelude::*;
 use std::fs::File;
 
+extern crate sdl2;
+extern crate rand;
+
 mod opcode;
+mod input;
+mod graphics;
 
 const FONT_SET_SIZE: usize = 80;
 const PROGRAM_START: usize = 0x200;
@@ -16,24 +21,31 @@ pub struct Cpu {
     pc: u16,
 
     stack: [u16; 16],
-    sp: u16
+    sp: u16,
+
+    graphics: sdl2::render::Canvas<sdl2::video::Window>,
+    input: sdl2::EventPump
 }
 
 impl Cpu {
     pub fn initialize() -> Cpu {
+        let sdl_context = sdl2::init().unwrap();
+
         return Cpu {
             memory: [0; 4096],
             registers: [0; 16],
             index: 0,
             pc: PROGRAM_START as u16,
             stack: [0; 16],
-            sp: 0
+            sp: 0,
+            graphics: graphics::initialize(&sdl_context),
+            input: input::initialize(&sdl_context)
         }
     }
 
-    pub fn load_font_set(&mut self, font_set: &[u8; FONT_SET_SIZE]) {
+    pub fn load_font_set(&mut self) {
         for index in 0..FONT_SET_SIZE {
-            self.memory[index] = font_set[index];
+            self.memory[index] = graphics::FONT_SET[index];
         }
     }
 
@@ -52,6 +64,8 @@ impl Cpu {
         );
         let op: opcode::Opcode = opcode::Instruction::decode_instruction(&inst);
         self.run_opcode(op, inst);
+        input::poll_for_event(&mut self.input);
+        graphics::draw(&mut self.graphics);
     }
 
     fn run_opcode(&mut self, op: opcode::Opcode, instruction: opcode::Instruction) {
@@ -151,7 +165,8 @@ impl Cpu {
                 self.pc = nnn + self.registers[0] as u16;
             },
             Opcode::RND => {
-                //TODO: implement random
+                self.registers[vx] = nn & rand::random();
+                self.pc += 2;
             },
             _ => panic!("Opcode {:?} not implemented", op)
         }
